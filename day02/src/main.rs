@@ -13,7 +13,7 @@ fn main() {
             .index(1))
         .get_matches();
 
-    let (h, d, _): (isize, isize, isize) = fs::read_to_string(args.value_of("FILE").unwrap())
+    let (h, d, _) = fs::read_to_string(args.value_of("FILE").unwrap())
         .expect("unable to read file")
         .split_whitespace()
         .tuples()
