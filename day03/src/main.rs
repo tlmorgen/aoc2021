@@ -1,6 +1,7 @@
 use std::fs;
 use clap::{App, Arg};
 use std::panic;
+use array2d::Array2D;
 
 fn main() {
     let args = App::new("AoC-2021-01")
@@ -14,94 +15,79 @@ fn main() {
 
     let file = args.value_of("FILE").unwrap();
     let content = fs::read_to_string(file).expect("io");
-    let words: Vec<&str> = content
+    let vecs: Vec<Vec<bool>> = content
         .split_whitespace()
-        .collect();        
-    let bwords: Vec<Vec<usize>> = words.iter()
         .map(|word| word
             .chars()
             .map(|char| {
                 match char {
-                    '0' => 0,
-                    '1' => 1,
+                    '0' => false,
+                    '1' => true,
                     _ => panic!("not binary")
                 }})
             .collect())
-        .collect(); 
-    let width = words[0].len();
+        .collect();
+    let vals = Array2D::from_rows(&vecs);
 
-    part1(width, &bwords);
-    part2(width, &bwords);
+    part1(&vals);
+    part2(&vals);
 }
 
-fn counts(width: usize, bwords: &Vec<Vec<usize>>, idxs: &Vec<usize>) -> Vec<usize> {
-
-    let mut counts = vec![0; width]; // little endian
-    for idx in idxs {
-        for (i, val) in bwords[*idx].iter().enumerate() {
-            counts[i] += val;
-        }
-    }
-    
-    counts
+fn counts(vals: &Array2D<bool>) -> Vec<usize> {
+    vals.as_columns()
+        .iter()
+        .map(|col| col.iter().map(|b| *b as usize).sum())
+        .collect()
 }
 
-fn filter(width: usize, bwords: &Vec<Vec<usize>>, popular: bool) -> Result<usize, &'static str> {
+fn filter(vals: &Array2D<bool>, popular: bool) -> Result<usize, &'static str> {
 
-    let mut matching_words: Vec<usize> = (0..bwords.len()).collect();
-    for pos in 0..width {
-        let counts = counts(width, bwords, &matching_words);
-        let tval = if counts[pos] >= (matching_words.len() - counts[pos]) {
-            if popular {1} else {0}
-        } else {
-            if popular {0} else {1}
-        };
-        matching_words = matching_words
+    let mut matches = vals.as_rows();
+    for pos in 0..vals.column_len() {
+        let amatches = Array2D::from_rows(&matches);
+        let counts = counts(&amatches);
+        let tval = if counts[pos] >= (amatches.column_len() - counts[pos]) {popular} else {!popular};
+        matches = amatches
+            .as_rows()
             .into_iter()
-            .filter(|i| bwords[*i][pos] == tval)
+            .filter(|val| val[pos] == tval)
             .collect();
-        if matching_words.len() < 2 {
+        if matches.len() < 2 {
             break;
         }
     }
 
-    if matching_words.len() != 1 {
+    if matches.len() != 1 {
         Err("no matching word")
     } else {
-        Ok(matching_words[0])
+        let dec = matches[0].iter()
+            .fold(0, |dec, bit| {
+                (dec << 1) + *bit as usize
+            });
+        Ok(dec)
     }
 }
 
-fn part1(width: usize, bwords: &Vec<Vec<usize>>) {
+fn part1(vals: &Array2D<bool>) {
 
-    let idxs: Vec<usize> = (0..bwords.len()).collect();
-    let counts = counts(width, &bwords, &idxs);
+    let counts = counts(vals);
 
     let gamma: usize = counts.iter()
         .fold(0, |gamma, &count| {
-            (gamma << 1) + if count > bwords.len() / 2 {1} else {0}
+            (gamma << 1) + if count > vals.column_len() / 2 {1} else {0}
         });
     let epsilon: usize = counts.iter()
         .fold(0, |epsilon, &count| {
-            (epsilon << 1) + if count > bwords.len() / 2 {0} else {1}
+            (epsilon << 1) + if count > vals.column_len() / 2 {0} else {1}
         });
 
     println!("{}", gamma * epsilon);
 }
 
-fn part2(width: usize, bwords: &Vec<Vec<usize>>) {
+fn part2(vals: &Array2D<bool>) {
 
-    let ox_idx = filter(width, &bwords, true).expect("unable to find O2");
-    let co2_idx = filter(width, &bwords, false).expect("unable to find CO2");
-
-    let ox = bwords[ox_idx].iter()
-        .fold(0, |ox, bit| {
-            (ox << 1) + bit
-        });
-    let co2 = bwords[co2_idx].iter()
-        .fold(0, |co2, bit| {
-            (co2 << 1) + bit
-        });
+    let ox = filter(vals, true).expect("unable to find O2");
+    let co2 = filter(vals, false).expect("unable to find CO2");
 
     println!("{}", ox * co2);
 }
