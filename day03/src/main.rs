@@ -34,16 +34,15 @@ fn main() {
 }
 
 fn counts(vals: &Array2D<bool>) -> Vec<usize> {
-    vals.as_columns()
-        .iter()
-        .map(|col| col.iter().map(|b| *b as usize).sum())
+    vals.columns_iter()
+        .map(|cell_iter| cell_iter.map(|b| *b as usize).sum())
         .collect()
 }
 
 fn filter(vals: &Array2D<bool>, popular: bool) -> Result<usize, &'static str> {
 
     let mut matches = vals.as_rows();
-    for pos in 0..vals.column_len() {
+    for pos in 0..vals.row_len() {
         let amatches = Array2D::from_rows(&matches);
         let counts = counts(&amatches);
         let tval = if counts[pos] >= (amatches.column_len() - counts[pos]) {popular} else {!popular};
@@ -61,8 +60,8 @@ fn filter(vals: &Array2D<bool>, popular: bool) -> Result<usize, &'static str> {
         Err("no matching word")
     } else {
         let dec = matches[0].iter()
-            .fold(0, |dec, bit| {
-                (dec << 1) + *bit as usize
+            .fold(0, |dec, &bit| {
+                (dec << 1) + bit as usize
             });
         Ok(dec)
     }
