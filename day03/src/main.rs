@@ -6,7 +6,7 @@ use array2d::Array2D;
 fn main() {
     let args = App::new("AoC-2021-01")
         .version("0.0.1")
-        .about("Day 2")
+        .about("Day 3")
         .arg(Arg::with_name("FILE")
             .help("input file path")
             .required(true)
