@@ -13,7 +13,8 @@ struct Cell {
 #[derive(Debug)]
 struct Board {
     cells: Array2D<Box<Cell>>,
-    test: HashSet<usize>
+    test: HashSet<usize>,
+    done: bool
 }
 
 impl Board {
@@ -29,7 +30,8 @@ impl Board {
             }));
         Board {
             cells: Array2D::from_iter_row_major(el_iter, num_rows, num_cols),
-            test: elements.into_iter().collect()
+            test: elements.into_iter().collect(),
+            done: false
         }
     }
 
@@ -45,7 +47,8 @@ impl Board {
                     Some(cell) => {
                         if cell.num == *val {
                             cell.hit = true;
-                            completion += self.check(i, j) as usize
+                            self.done = self.check(i, j);
+                            completion += self.done as usize
                         }
                     },
                     None => {}
@@ -61,6 +64,10 @@ impl Board {
             .filter(|cell| !cell.hit)
             .map(|cell| cell.num)
             .sum()
+    }
+
+    pub fn done(&self) -> bool {
+        self.done
     }
 
     fn check(&self, row: usize, col: usize) -> bool {
@@ -110,8 +117,24 @@ fn part1(nums: &[usize], boards: &mut [Board]) {
     for n in nums {
         for b in boards.iter_mut() {
             if b.mark_all(n) {
-                print!("{} {} {}", n, b.unhit_sum(), n * b.unhit_sum());
+                println!("{} {} {}", n, b.unhit_sum(), n * b.unhit_sum());
                 return;
+            }
+        }
+    }
+}
+
+fn part2(nums: &[usize], boards: &mut [Board]) {
+    let num_boards = boards.len();
+    let mut completed = 0;
+    for n in nums {
+        for b in boards.iter_mut() {
+            if !b.done() && b.mark_all(n) {
+                completed += 1;
+            }
+            if completed + 1 == num_boards {
+                println!("{} {} {}", n, b.unhit_sum(), n * b.unhit_sum());
+                return;                
             }
         }
     }
@@ -131,4 +154,5 @@ fn main() {
     let (nums, mut boards): (Vec<usize>, Vec<Board>) = parse(&content);
 
     part1(&nums, &mut boards);
+    part2(&nums, &mut boards);
 }
