@@ -1,66 +1,70 @@
 use std::fs;
 use clap::{App, Arg};
 use std::panic;
-use array2d::Array2D;
-use std::collections::HashSet;
+use multimap::MultiMap;
 
 #[derive(Clone, Debug)]
 struct Cell {
+    row: usize,
+    col: usize,
     num: usize,
     hit: bool
 }
 
 #[derive(Debug)]
 struct Board {
-    cells: Array2D<Cell>,
-    test: HashSet<usize>,
+    cells: MultiMap<usize, Cell>,
+    row_hits: Vec<usize>,
+    col_hits: Vec<usize>,
     done: bool
 }
 
 impl Board {
 
-    pub fn new(rows: Vec<Vec<usize>>) -> Board {
-        let num_rows = rows.len();
-        let num_cols = rows[0].len();
-        let elements: Vec<usize> = rows.concat();
-        let el_iter = elements.iter()
-            .map(|&n| Cell {
-                num: n,
-                hit: false
-            });
+    pub fn from_row_major(rows: Vec<Vec<usize>>) -> Board {
+        let mut cells: MultiMap<usize, Cell> = MultiMap::new();
+        rows.iter().enumerate()
+            .map(|(i, row)| row.iter().enumerate()
+                .map(move |(j, &num)| Cell{
+                    row: i,
+                    col: j,
+                    num: num,
+                    hit: false
+                }))
+            .flatten()
+            .for_each(|cell| cells.insert(cell.num, cell));
         Board {
-            cells: Array2D::from_iter_row_major(el_iter, num_rows, num_cols),
-            test: elements.into_iter().collect(),
+            cells: cells,
+            row_hits: vec![0; rows.len()],
+            col_hits: vec![0; rows[0].len()],
             done: false
         }
     }
 
     pub fn mark_all(&mut self, val: usize) -> bool {
-        if !self.test.contains(&val) {
-            return false;
-        }
 
-        for i in 0..self.cells.num_rows() {
-            for j in 0..self.cells.num_columns() {
-                match self.cells.get_mut(i, j) {
-                    Some(cell) => {
-                        if cell.num == val {
-                            cell.hit = true;
-                            if self.check(i, j) {
-                                self.done = true;
-                            }
-                        }
-                    },
-                    None => {}
-                }
+        for cell in self.cells.get_vec_mut(&val).into_iter().flatten() { // TODO better terse way to not care about Option
+            if cell.hit {continue}
+            
+            cell.hit = true;
+            self.row_hits[cell.row] += 1;
+            self.col_hits[cell.col] += 1;
+            if self.row_hits[cell.row] == self.col_hits.len() {
+                self.done = true;
             }
+            if self.col_hits[cell.col] == self.row_hits.len() {
+                self.done = true;
+            }
+
         }
 
         self.done
     }
 
     pub fn unhit_sum(&self) -> usize {
-        self.cells.elements_column_major_iter()
+        self.cells.iter_all()
+            .map(|(_, vec)| vec) // no iterator over all values :(
+            .flatten()
             .filter(|cell| !cell.hit)
             .map(|cell| cell.num)
             .sum()
@@ -68,16 +72,6 @@ impl Board {
 
     pub fn done(&self) -> bool {
         self.done
-    }
-
-    fn check(&self, row: usize, col: usize) -> bool {
-        self.cells.row_iter(row)
-            .map(|cell| cell.hit)
-            .all(|b| b)
-        ||
-        self.cells.column_iter(col)
-            .map(|cell| cell.hit)
-            .all(|b| b)
     }
 }
 
@@ -94,7 +88,7 @@ fn parse(content: &str) -> (Vec<usize>, Vec<Board>) {
     let mut next_board: Vec<Vec<usize>> = Vec::new();
     for line in iter {
         if line.len() < 1 && next_board.len() > 0 {
-            let b = Board::new(next_board);
+            let b = Board::from_row_major(next_board);
             boards.push(b);
             next_board = Vec::new();
         } else if line.len() > 0 {
@@ -106,7 +100,7 @@ fn parse(content: &str) -> (Vec<usize>, Vec<Board>) {
     }
 
     if next_board.len() > 0 {
-        let b = Board::new(next_board);
+        let b = Board::from_row_major(next_board);
         boards.push(b);
     }
 
