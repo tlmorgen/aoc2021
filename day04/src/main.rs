@@ -12,7 +12,7 @@ struct Cell {
 
 #[derive(Debug)]
 struct Board {
-    cells: Array2D<Box<Cell>>,
+    cells: Array2D<Cell>,
     test: HashSet<usize>,
     done: bool
 }
@@ -24,10 +24,10 @@ impl Board {
         let num_cols = rows[0].len();
         let elements: Vec<usize> = rows.concat();
         let el_iter = elements.iter()
-            .map(|n| Box::new(Cell {
+            .map(|n| Cell {
                 num: *n,
                 hit: false
-            }));
+            });
         Board {
             cells: Array2D::from_iter_row_major(el_iter, num_rows, num_cols),
             test: elements.into_iter().collect(),
@@ -40,15 +40,15 @@ impl Board {
             return false;
         }
 
-        let mut completion: usize = 0;
         for i in 0..self.cells.num_rows() {
             for j in 0..self.cells.num_columns() {
                 match self.cells.get_mut(i, j) {
                     Some(cell) => {
                         if cell.num == *val {
                             cell.hit = true;
-                            self.done = self.check(i, j);
-                            completion += self.done as usize
+                            if self.check(i, j) {
+                                self.done = true;
+                            }
                         }
                     },
                     None => {}
@@ -56,7 +56,7 @@ impl Board {
             }
         }
 
-        completion > 0
+        self.done
     }
 
     pub fn unhit_sum(&self) -> usize {
