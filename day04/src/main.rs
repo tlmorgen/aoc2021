@@ -24,8 +24,8 @@ impl Board {
         let num_cols = rows[0].len();
         let elements: Vec<usize> = rows.concat();
         let el_iter = elements.iter()
-            .map(|n| Cell {
-                num: *n,
+            .map(|&n| Cell {
+                num: n,
                 hit: false
             });
         Board {
@@ -35,7 +35,7 @@ impl Board {
         }
     }
 
-    pub fn mark_all(&mut self, val: &usize) -> bool {
+    pub fn mark_all(&mut self, val: usize) -> bool {
         if !self.test.contains(&val) {
             return false;
         }
@@ -44,7 +44,7 @@ impl Board {
             for j in 0..self.cells.num_columns() {
                 match self.cells.get_mut(i, j) {
                     Some(cell) => {
-                        if cell.num == *val {
+                        if cell.num == val {
                             cell.hit = true;
                             if self.check(i, j) {
                                 self.done = true;
@@ -114,7 +114,7 @@ fn parse(content: &str) -> (Vec<usize>, Vec<Board>) {
 }
 
 fn part1(nums: &[usize], boards: &mut [Board]) {
-    for n in nums {
+    for &n in nums {
         for b in boards.iter_mut() {
             if b.mark_all(n) {
                 println!("{} {} {}", n, b.unhit_sum(), n * b.unhit_sum());
@@ -127,7 +127,7 @@ fn part1(nums: &[usize], boards: &mut [Board]) {
 fn part2(nums: &[usize], boards: &mut [Board]) {
     let num_boards = boards.len();
     let mut completed = 0;
-    for n in nums {
+    for &n in nums {
         for b in boards.iter_mut() {
             if !b.done() && b.mark_all(n) {
                 completed += 1;
