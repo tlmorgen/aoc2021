@@ -38,7 +38,7 @@ impl Board {
             .flatten()
             .for_each(|cell| cells.insert(cell.num, cell));
         Board {
-            cells: cells,
+            cells,
             row_hits: vec![0; rows.len()],
             col_hits: vec![0; rows[0].len()],
             done: false
@@ -80,18 +80,8 @@ impl Board {
 }
 
 impl Day4 {
-    pub fn new() -> Day4 {
-        Day4 {
-            nums: Vec::new(),
-            boards: Vec::new()
-        }
-    }
-}
+    pub fn from_content(content: &str) -> Box<dyn Day> {
 
-impl Day for Day4 {
-
-    fn load(&mut self, content: &str) {      
-    
         let mut iter = content.lines();
         let conv_num = |n: &str| n.parse::<usize>().unwrap_or_else(|_| panic!("not a num: {}", n));
         let nums: Vec<usize> = iter.next()
@@ -113,15 +103,17 @@ impl Day for Day4 {
                 next_board.push(row);
             }
         }
-    
+
         if next_board.len() > 0 {
             let b = Board::from_row_major(next_board);
             boards.push(b);
         }
-    
-        self.nums = nums;
-        self.boards = boards;
+
+        Box::new(Day4 {nums, boards})
     }
+}
+
+impl Day for Day4 {
 
     fn part1(&mut self) -> isize {
         for n in self.nums.iter_mut() {

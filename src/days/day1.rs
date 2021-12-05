@@ -7,20 +7,17 @@ pub struct Day1 {
 }
 
 impl Day1 {
-    pub fn new() -> Day1 {
-        Day1 {
-            depths: Vec::new()
-        }
+    pub fn from_content(content: &str) -> Box<dyn Day> {
+        Box::new(Day1 {
+            depths: content
+                .split_whitespace()
+                .map(|s| s.parse::<isize>().expect("not a num"))
+                .collect()
+        })
     }
 }
 
 impl Day for Day1 {
-    fn load(&mut self, content: &str) {
-        self.depths = content
-            .split_whitespace()
-            .map(|s| s.parse::<isize>().expect("not a num"))
-            .collect();
-    }
 
     fn part1(&mut self) -> isize {
         let mut incrs = 0;

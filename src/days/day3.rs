@@ -6,15 +6,7 @@ pub struct Day3 {
 }
 
 impl Day3 {
-    pub fn new() -> Day3 {
-        Day3 {
-            values: Array2D::filled_with(false, 0, 0)
-        }
-    }
-}
-
-impl Day for Day3 {
-    fn load(&mut self, content: &str) {
+    pub fn from_content(content: &str) -> Box<dyn Day> {
         let vecs: Vec<Vec<bool>> = content
             .split_whitespace()
             .map(|word| word
@@ -27,8 +19,14 @@ impl Day for Day3 {
                     }})
                 .collect())
             .collect();
-        self.values = Array2D::from_rows(&vecs);        
+
+        Box::new(Day3 {
+            values: Array2D::from_rows(&vecs)
+        })
     }
+}
+
+impl Day for Day3 {
 
     fn part1(&mut self) -> isize {
         let counts = counts(&self.values);

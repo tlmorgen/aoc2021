@@ -5,14 +5,6 @@ pub struct Day2 {
     instructions: Vec<Instruction>
 }
 
-impl Day2 {
-    pub fn new() -> Day2 {
-        Day2 {
-            instructions: Vec::new()
-        }
-    }
-}
-
 enum Direction {
     Forward,
     Up,
@@ -24,30 +16,35 @@ struct Instruction {
     quantity: isize
 }
 
-impl Day for Day2 {
-    fn load(&mut self, content: &str) {
-        self.instructions = content.split_whitespace()
-            .tuples()
-            .map(|(sdir, sqty)| {
-                let quantity = sqty.parse().expect("not a num");
-                match sdir {
-                    "forward" => Instruction {
-                        direction: Direction::Forward,
-                        quantity: quantity
-                    },
-                    "up" => Instruction {
-                        direction: Direction::Up,
-                        quantity: quantity
-                    },
-                    "down" => Instruction {
-                        direction: Direction::Down,
-                        quantity: quantity
-                    },
-                    _ => panic!("unsupported direction {}", sdir)
-                }
-            })
-            .collect();
+impl Day2 {
+    pub fn from_content(content: &str) -> Box<dyn Day> {
+        Box::new(Day2 {
+            instructions: content.split_whitespace()
+                .tuples()
+                .map(|(sdir, sqty)| {
+                    let quantity = sqty.parse().expect("not a num");
+                    match sdir {
+                        "forward" => Instruction {
+                            direction: Direction::Forward,
+                            quantity
+                        },
+                        "up" => Instruction {
+                            direction: Direction::Up,
+                            quantity
+                        },
+                        "down" => Instruction {
+                            direction: Direction::Down,
+                            quantity
+                        },
+                        _ => panic!("unsupported direction {}", sdir)
+                    }
+                })
+                .collect()
+        })
     }
+}
+
+impl Day for Day2 {
 
     fn part1(&mut self) -> isize {
         let (x, y): (isize, isize) = self.instructions.iter().fold((0, 0), |(x, y), instr| {
