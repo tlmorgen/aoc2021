@@ -16,7 +16,8 @@ const DAY_MAKERS: &'static [fn(&str) -> Box<dyn  Day>] = &[
     days::day1::Day1::from_content,
     days::day2::Day2::from_content,
     days::day3::Day3::from_content,
-    days::day4::Day4::from_content
+    days::day4::Day4::from_content,
+    days::day5::Day5::from_content
 ];
 
 fn main() {
