@@ -49,6 +49,7 @@ fn main() -> ExitCode {
 
     let test: bool = app.occurrences_of(ARG_TEST) > 0;
     let content_path = format!("./day{:02}/{}.txt", day_num, if test {"test"} else {"input"});
+    println!("Loading input from {}", content_path);
     let content = match fs::read_to_string(&content_path) {
         Ok(content) => content,
         Err(error) => {
