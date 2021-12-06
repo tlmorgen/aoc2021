@@ -7,13 +7,13 @@ pub struct Day1 {
 }
 
 impl Day1 {
-    pub fn from_content(content: &str) -> Box<dyn Day> {
-        Box::new(Day1 {
+    pub fn from_content(content: &str) -> Result<Box<dyn Day>, &'static str> {
+        Ok(Box::new(Day1 {
             depths: content
                 .split_whitespace()
                 .map(|s| s.parse::<isize>().expect("not a num"))
                 .collect()
-        })
+        }))
     }
 }
 

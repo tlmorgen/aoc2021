@@ -22,7 +22,7 @@ pub struct Day5 {
 }
 
 impl Day5 {
-    pub fn from_content(content: &str) -> Box<dyn Day> {
+    pub fn from_content(content: &str) -> Result<Box<dyn Day>, &'static str> {
         let lines: Vec<Line> = content.split_whitespace()
             .tuples()
             .map(|(a, _, b)| Line {
@@ -36,11 +36,11 @@ impl Day5 {
                  cmp::max(max_y, cmp::max(line.a.y, line.b.y)))
             });
 
-        Box::new(Day5 {
+        Ok(Box::new(Day5 {
             lines,
             max_x,
             max_y,
-        })
+        }))
     }
 }
 

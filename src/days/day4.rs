@@ -80,7 +80,7 @@ impl Board {
 }
 
 impl Day4 {
-    pub fn from_content(content: &str) -> Box<dyn Day> {
+    pub fn from_content(content: &str) -> Result<Box<dyn Day>, &'static str> {
 
         let mut iter = content.lines();
         let conv_num = |n: &str| n.parse::<usize>().unwrap_or_else(|_| panic!("not a num: {}", n));
@@ -109,7 +109,7 @@ impl Day4 {
             boards.push(b);
         }
 
-        Box::new(Day4 {nums, boards})
+        Ok(Box::new(Day4 {nums, boards}))
     }
 }
 

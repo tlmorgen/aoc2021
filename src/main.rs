@@ -1,3 +1,4 @@
+#![feature(process_exitcode_placeholder)]
 extern crate chrono;
 extern crate chrono_tz;
 
@@ -6,13 +7,14 @@ mod days;
 
 use clap::{App, Arg};
 use std::fs;
-use day::Day;
+use std::process::ExitCode;
+use day::DayMaker;
 use chrono::{Utc, TimeZone, Datelike};
 use chrono_tz::US::Eastern;
 
 const ARG_DAY: &'static str = "day";
 const ARG_TEST: &'static str = "test";
-const DAY_MAKERS: &'static [fn(&str) -> Box<dyn  Day>] = &[
+const DAY_MAKERS: &'static [DayMaker] = &[
     days::day1::Day1::from_content,
     days::day2::Day2::from_content,
     days::day3::Day3::from_content,
@@ -20,7 +22,7 @@ const DAY_MAKERS: &'static [fn(&str) -> Box<dyn  Day>] = &[
     days::day5::Day5::from_content
 ];
 
-fn main() {
+fn main() -> ExitCode {
     let app = App::new("AoC-2021-01")
         .version("0.0.1")
         .about("Advent of Code 2021")
@@ -38,11 +40,32 @@ fn main() {
             .day() as usize
     };
     let day_idx = day_num - 1;
+
+    if DAY_MAKERS.len() <= day_idx {
+        eprintln!("Day {} is not registered yet.", day_num);
+        return ExitCode::FAILURE;
+    }
+
     let test: bool = app.occurrences_of(ARG_TEST) > 0;
     let content_path = format!("./day{:02}/{}.txt", day_num, if test {"test"} else {"input"});
-    let content = fs::read_to_string(&content_path).expect("io");
+    let content = match fs::read_to_string(&content_path) {
+        Ok(content) => content,
+        Err(error) => {
+            eprintln!("Unable to open input file {}: {}", content_path, error);
+            return ExitCode::FAILURE;
+        }
+    };
 
-    let mut day_impl = DAY_MAKERS[day_idx](&content);
-    println!("part 1: {}", day_impl.part1());
-    println!("part 2: {}", day_impl.part2());
+    match DAY_MAKERS[day_idx](&content) {
+        Ok(mut day) => {
+            println!("part 1: {}", day.part1());
+            println!("part 2: {}", day.part2());
+        },
+        Err(desc) => {
+            eprintln!("Error creating day: {}", desc);
+            return ExitCode::FAILURE;
+        }
+    }
+
+    return ExitCode::SUCCESS;
 }

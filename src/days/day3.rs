@@ -6,7 +6,7 @@ pub struct Day3 {
 }
 
 impl Day3 {
-    pub fn from_content(content: &str) -> Box<dyn Day> {
+    pub fn from_content(content: &str) -> Result<Box<dyn Day>, &'static str> {
         let vecs: Vec<Vec<bool>> = content
             .split_whitespace()
             .map(|word| word
@@ -20,9 +20,9 @@ impl Day3 {
                 .collect())
             .collect();
 
-        Box::new(Day3 {
+        Ok(Box::new(Day3 {
             values: Array2D::from_rows(&vecs)
-        })
+        }))
     }
 }
 

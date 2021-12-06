@@ -17,8 +17,8 @@ struct Instruction {
 }
 
 impl Day2 {
-    pub fn from_content(content: &str) -> Box<dyn Day> {
-        Box::new(Day2 {
+    pub fn from_content(content: &str) -> Result<Box<dyn Day>, &'static str> {
+        Ok(Box::new(Day2 {
             instructions: content.split_whitespace()
                 .tuples()
                 .map(|(sdir, sqty)| {
@@ -40,7 +40,7 @@ impl Day2 {
                     }
                 })
                 .collect()
-        })
+        }))
     }
 }
 
