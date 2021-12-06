@@ -1,5 +1,9 @@
 use super::super::day::Day;
 
+const SZ_STATES: usize = 9;
+const STATE_POSTPARTUM: usize = 6;
+const STATES_NASCENT: usize = 8;
+
 pub struct Day6 {
     fishes: Vec<usize>
 }
@@ -13,10 +17,6 @@ impl Day6 {
         }))
     }
 }
-
-const SZ_STATES: usize = 9;
-const STATE_POSTPARTUM: usize = 6;
-const STATES_NASCENT: usize = 8;
 
 impl Day for Day6 {
 
@@ -44,14 +44,13 @@ impl Day for Day6 {
         }
 
         for _ in 0..256 {
-            let mut new_fish_states = [0 as usize; SZ_STATES];
             let births = fish_states[0];
             for state in 1..SZ_STATES {
-                new_fish_states[state - 1] = fish_states[state];
+                fish_states[state - 1] = fish_states[state];
             }
-            new_fish_states[STATE_POSTPARTUM] += births;
-            new_fish_states[STATES_NASCENT] += births;
-            fish_states = new_fish_states;
+            fish_states[SZ_STATES - 1] = 0;
+            fish_states[STATE_POSTPARTUM] += births;
+            fish_states[STATES_NASCENT] += births;
         }
 
         fish_states.iter().sum::<usize>() as isize
