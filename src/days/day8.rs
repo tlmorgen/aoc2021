@@ -50,92 +50,94 @@ impl Day for Day8 {
         let mut sum = 0isize;
         for entry in self.entries.iter() {
 
-            let mut crypt_to_cypher: BiHashMap<u8, u8> = BiHashMap::new();
+            let mut plain_to_cypher: BiHashMap<u8, u8> = BiHashMap::new();
             let mut set069: Vec<u8> = Vec::new();
             let mut set235: Vec<u8> = Vec::new();
             for cypher_digit in entry.cypher.iter() {
                 match sum_bits(*cypher_digit) {
                     2 => {
-                        crypt_to_cypher.insert(1, *cypher_digit);
+                        plain_to_cypher.insert(1, *cypher_digit);
                     },
                     3 => {
-                        crypt_to_cypher.insert(7, *cypher_digit);
+                        plain_to_cypher.insert(7, *cypher_digit);
                     },
                     4 => {
-                        crypt_to_cypher.insert(4, *cypher_digit);
+                        plain_to_cypher.insert(4, *cypher_digit);
                     },
                     5 => set235.push(*cypher_digit),
                     6 => set069.push(*cypher_digit),
                     7 => {
-                        crypt_to_cypher.insert(8, *cypher_digit);
+                        plain_to_cypher.insert(8, *cypher_digit);
                     },
                     _ => panic!("unexpected digit bits {}", sum_bits(*cypher_digit))
                 }
             }
+            let cypher_1 = *plain_to_cypher.get_by_left(&1).unwrap();
+            let cypher_4 = *plain_to_cypher.get_by_left(&4).unwrap();
+            let cypher_7 = *plain_to_cypher.get_by_left(&7).unwrap();
 
             // 7 ^ 1 => a
-            let bit_a = crypt_to_cypher.get_by_left(&7).unwrap() ^ crypt_to_cypher.get_by_left(&1).unwrap();
+            let cypher_bit_a = cypher_7 ^ cypher_1;
 
-            // (4 | 1) ^ [069] == 1 => 9,g
-            let bits_4a = crypt_to_cypher.get_by_left(&4).unwrap() | bit_a;
-            set069 = set069.into_iter().filter(|word| {
-                    if sum_bits(bits_4a ^ *word) == 1 {
-                        crypt_to_cypher.insert(9, *word);
-                        false
-                    } else {true}
-                })
-                .collect();
+            // (4 | a) ^ [069] == 1 => 9,g
+            let bits_4a = cypher_4 | cypher_bit_a;
+            set069 = set069.into_iter().filter(|cypher_digit| {
+                if sum_bits(bits_4a ^ *cypher_digit) == 1 {
+                    plain_to_cypher.insert(9, *cypher_digit);
+                    false
+                } else {true}
+            }).collect();
 
             // (1 ^ 4) & [06] == 1 => 0,d
-            let bits_1x4 = crypt_to_cypher.get_by_left(&1).unwrap() ^ crypt_to_cypher.get_by_left(&4).unwrap();
-            set069 = set069.into_iter().filter(|word| {
-                    if sum_bits(word & bits_1x4) == 1 {
-                        crypt_to_cypher.insert(0, *word);
+            let bits_1x4 = cypher_1 ^ cypher_4;
+            set069 = set069.into_iter().filter(|cypher_digit| {
+                    if sum_bits(cypher_digit & bits_1x4) == 1 {
+                        plain_to_cypher.insert(0, *cypher_digit);
                         false
                     } else {true}
                 }).collect();
 
             // [6]
             if set069.len() == 1 {
-                crypt_to_cypher.insert(6, *set069.get(0).unwrap());
+                plain_to_cypher.insert(6, *set069.get(0).unwrap());
             } else {
                 panic!("algo not working: [069]");
             }
 
+            let cypher_6 = *plain_to_cypher.get_by_left(&6).unwrap();
             // 6 ^ [235] == 1 => 5,e
-            let bits_6 = *crypt_to_cypher.get_by_left(&6).unwrap();
-            set235 = set235.into_iter().filter(|word| {
-                if sum_bits(bits_6 ^ *word) == 1 {
-                    crypt_to_cypher.insert(5, *word);
+            set235 = set235.into_iter().filter(|cypher_digit| {
+                if sum_bits(cypher_6 ^ *cypher_digit) == 1 {
+                    plain_to_cypher.insert(5, *cypher_digit);
                     false
                 } else {true}
             }).collect();
 
+            let cypher_9 = *plain_to_cypher.get_by_left(&9).unwrap();
             // 9 ^ [23] == 1 => 5,e
-            let bits_9 = *crypt_to_cypher.get_by_left(&9).unwrap();
-            set235 = set235.into_iter().filter(|word| {
-                if sum_bits(bits_9 ^ *word) == 1 {
-                    crypt_to_cypher.insert(3, *word);
+            set235 = set235.into_iter().filter(|cypher_digit| {
+                if sum_bits(cypher_9 ^ *cypher_digit) == 1 {
+                    plain_to_cypher.insert(3, *cypher_digit);
                     false
                 } else {true}
             }).collect();
 
             // [2]
             if set235.len() == 1 {
-                crypt_to_cypher.insert(2, *set235.get(0).unwrap());
+                plain_to_cypher.insert(2, *set235.get(0).unwrap());
             } else {
                 panic!("algo not working: [235]");
             }
 
             // check
-            if !crypt_to_cypher.len() == 10 {
-                panic!("not enough encrypt keys found: {}", crypt_to_cypher.len());
+            if !plain_to_cypher.len() == 10 {
+                panic!("not enough keys found: {}", plain_to_cypher.len());
             }
 
             // decrypt
             let mut plain_num = 0isize;
-            for word in entry.target.iter() {
-                let plain_digit = crypt_to_cypher.get_by_right(word).unwrap();
+            for cypher_digit in entry.target.iter() {
+                let plain_digit = plain_to_cypher.get_by_right(cypher_digit).unwrap();
                 plain_num = (plain_num * 10) + *plain_digit as isize;
             }
             sum += plain_num;
