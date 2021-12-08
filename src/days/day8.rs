@@ -1,9 +1,7 @@
-use std::fmt::{Debug};
 use super::super::day::Day;
 use itertools::Itertools;
-use std::collections::HashMap;
+use bimap::BiHashMap;
 
-#[derive(Debug)]
 struct Pair {
     cypher: Vec<u8>,
     target: Vec<u8>
@@ -37,7 +35,7 @@ impl Day for Day8 {
             .map(|entry| &entry.target)
             .flatten()
             .fold(0isize, |count, word| {
-                count + match sumbits(*word) {
+                count + match sum_bits(*word) {
                     2 => 1,
                     3 => 1,
                     4 => 1,
@@ -48,89 +46,96 @@ impl Day for Day8 {
     }
 
     fn part2(&mut self) -> isize {
+
         let mut sum = 0isize;
         for entry in self.entries.iter() {
-            let mut cypher_map: HashMap<u8, u8> = HashMap::new();
-            let mut crypt_map: HashMap<u8, u8> = HashMap::new();
+
+            let mut crypt_to_cypher: BiHashMap<u8, u8> = BiHashMap::new();
             let mut set069: Vec<u8> = Vec::new();
             let mut set235: Vec<u8> = Vec::new();
-            for word in entry.cypher.iter() {
-                match sumbits(*word) {
+            for cypher_digit in entry.cypher.iter() {
+                match sum_bits(*cypher_digit) {
                     2 => {
-                        cypher_map.insert(*word, 1);
-                        crypt_map.insert(1, *word);
+                        crypt_to_cypher.insert(1, *cypher_digit);
                     },
                     3 => {
-                        cypher_map.insert(*word, 7);
-                        crypt_map.insert(7, *word);
+                        crypt_to_cypher.insert(7, *cypher_digit);
                     },
                     4 => {
-                        cypher_map.insert(*word, 4);
-                        crypt_map.insert(4, *word);
+                        crypt_to_cypher.insert(4, *cypher_digit);
                     },
-                    5 => set235.push(*word),
-                    6 => set069.push(*word),
+                    5 => set235.push(*cypher_digit),
+                    6 => set069.push(*cypher_digit),
                     7 => {
-                        cypher_map.insert(*word, 8);
-                        crypt_map.insert(8, *word);
+                        crypt_to_cypher.insert(8, *cypher_digit);
                     },
-                    _ => {}
+                    _ => panic!("unexpected digit bits {}", sum_bits(*cypher_digit))
                 }
             }
 
-            let a_bit = crypt_map.get(&7).unwrap() ^ crypt_map.get(&1).unwrap();
-            let bits_4a = crypt_map.get(&4).unwrap() | a_bit;
+            // 7 ^ 1 => a
+            let bit_a = crypt_to_cypher.get_by_left(&7).unwrap() ^ crypt_to_cypher.get_by_left(&1).unwrap();
+
+            // (4 | 1) ^ [069] == 1 => 9,g
+            let bits_4a = crypt_to_cypher.get_by_left(&4).unwrap() | bit_a;
             set069 = set069.into_iter().filter(|word| {
-                    if sumbits(bits_4a ^ *word) == 1 {
-                        crypt_map.insert(9, *word);
-                        cypher_map.insert(*word, 9);
+                    if sum_bits(bits_4a ^ *word) == 1 {
+                        crypt_to_cypher.insert(9, *word);
                         false
                     } else {true}
                 })
                 .collect();
-            let bits_1x4 = crypt_map.get(&1).unwrap() ^ crypt_map.get(&4).unwrap();
+
+            // (1 ^ 4) & [06] == 1 => 0,d
+            let bits_1x4 = crypt_to_cypher.get_by_left(&1).unwrap() ^ crypt_to_cypher.get_by_left(&4).unwrap();
             set069 = set069.into_iter().filter(|word| {
-                    if sumbits(word & bits_1x4) == 1 {
-                        crypt_map.insert(0, *word);
-                        cypher_map.insert(*word, 0);
+                    if sum_bits(word & bits_1x4) == 1 {
+                        crypt_to_cypher.insert(0, *word);
                         false
                     } else {true}
                 }).collect();
+
+            // [6]
             if set069.len() == 1 {
-                crypt_map.insert(6, *set069.get(0).unwrap());
-                cypher_map.insert(*set069.get(0).unwrap(), 6);
+                crypt_to_cypher.insert(6, *set069.get(0).unwrap());
             } else {
-                panic!("algo not working");
-            }
-            let bits_6 = *crypt_map.get(&6).unwrap();
-            set235 = set235.into_iter().filter(|word| {
-                if sumbits(bits_6 ^ *word) == 1 {
-                    crypt_map.insert(5, *word);
-                    cypher_map.insert(*word, 5);
-                    false
-                } else {true}
-            }).collect();
-            let bits_9 = *crypt_map.get(&9).unwrap();
-            set235 = set235.into_iter().filter(|word| {
-                if sumbits(bits_9 ^ *word) == 1 {
-                    crypt_map.insert(3, *word);
-                    cypher_map.insert(*word, 3);
-                    false
-                } else {true}
-            }).collect();
-            if set235.len() == 1 {
-                crypt_map.insert(2, *set235.get(0).unwrap());
-                cypher_map.insert(*set235.get(0).unwrap(), 2);
-            } else {
-                panic!("algo not working");
-            }
-            if !crypt_map.len() == 10 {
-                panic!("not enough found: {}", crypt_map.len());
+                panic!("algo not working: [069]");
             }
 
+            // 6 ^ [235] == 1 => 5,e
+            let bits_6 = *crypt_to_cypher.get_by_left(&6).unwrap();
+            set235 = set235.into_iter().filter(|word| {
+                if sum_bits(bits_6 ^ *word) == 1 {
+                    crypt_to_cypher.insert(5, *word);
+                    false
+                } else {true}
+            }).collect();
+
+            // 9 ^ [23] == 1 => 5,e
+            let bits_9 = *crypt_to_cypher.get_by_left(&9).unwrap();
+            set235 = set235.into_iter().filter(|word| {
+                if sum_bits(bits_9 ^ *word) == 1 {
+                    crypt_to_cypher.insert(3, *word);
+                    false
+                } else {true}
+            }).collect();
+
+            // [2]
+            if set235.len() == 1 {
+                crypt_to_cypher.insert(2, *set235.get(0).unwrap());
+            } else {
+                panic!("algo not working: [235]");
+            }
+
+            // check
+            if !crypt_to_cypher.len() == 10 {
+                panic!("not enough encrypt keys found: {}", crypt_to_cypher.len());
+            }
+
+            // decrypt
             let mut plain_num = 0isize;
             for word in entry.target.iter() {
-                let plain_digit = cypher_map.get(word).unwrap();
+                let plain_digit = crypt_to_cypher.get_by_right(word).unwrap();
                 plain_num = (plain_num * 10) + *plain_digit as isize;
             }
             sum += plain_num;
@@ -140,7 +145,7 @@ impl Day for Day8 {
     }
 }
 
-fn sumbits(mut word: u8) -> usize {
+fn sum_bits(mut word: u8) -> usize {
     let mut sum = 0usize;
     for _ in 0..8 {
         sum += (word & 1) as usize;
