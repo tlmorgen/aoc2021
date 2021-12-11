@@ -1,5 +1,5 @@
 use super::super::day::Day;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashMap;
 use bimap::BiHashMap;
 use itertools::Itertools;
 
@@ -75,7 +75,6 @@ impl Day for Day10 {
                 }
             }
 
-            let mut sum = 0isize;
             if incomplete {
                 let points = stack.iter().rev()
                     .fold(0isize, |points, open_brace| {
