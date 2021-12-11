@@ -24,7 +24,8 @@ const DAY_MAKERS: &'static [DayMaker] = &[
     days::day7::Day7::from_content,
     days::day8::Day8::from_content,
     days::day9::Day9::from_content,
-    days::day10::Day10::from_content
+    days::day10::Day10::from_content,
+    days::day11::Day11::from_content
 ];
 
 fn main() -> ExitCode {
