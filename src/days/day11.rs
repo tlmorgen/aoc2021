@@ -14,11 +14,11 @@ impl Day11 {
 
 impl Day for Day11 {
     fn part1(&mut self) -> isize {
-        self.octopuses.count_flashes(100)
+        self.octopuses.clone().count_flashes(100)
     }
 
     fn part2(&mut self) -> isize {
-        0
+        self.octopuses.clone().first_sync()
     }
 }
 
@@ -46,19 +46,20 @@ impl Pos {
     }
 }
 
+#[derive(Clone)]
 struct OctopusGrid {
     energies: Vec<Vec<usize>>
 }
 
 impl OctopusGrid {
     fn from_string(content: &str) -> OctopusGrid {
-        OctopusGrid {
-            energies: content.lines()
-                .map(|line| line.chars()
-                    .map(|c| c as usize - '0' as usize)
-                    .collect())
-                .collect()
-        }
+        let energies: Vec<Vec<usize>> = content.lines()
+            .map(|line| line.chars()
+                .map(|c| c as usize - '0' as usize)
+                .collect())
+            .collect();
+        assert_eq!(energies.iter().map(Vec::len).min(), energies.iter().map(Vec::len).max());
+        OctopusGrid {energies}
     }
 
     fn all_pos(&self) -> Vec<Pos> {
@@ -123,5 +124,15 @@ impl OctopusGrid {
             self.incr_all();
             flashes + self.prune_all()
         })
+    }
+
+    fn first_sync(&mut self) -> isize {
+        for cycle in 1..1000 {
+            self.incr_all();
+            if self.prune_all() == (self.energies.len() * self.energies[0].len()) as isize {
+                return cycle
+            }
+        }
+        0
     }
 }
