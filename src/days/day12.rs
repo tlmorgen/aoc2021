@@ -29,40 +29,85 @@ impl Day12 {
 impl Day for Day12 {
     fn part1(&mut self) -> isize {
         let graph = self.build_graph();
-        all_paths_start(&graph) as isize
+        all_paths_start(&graph, is_visitable_small_caves_once) as isize
     }
 
     fn part2(&mut self) -> isize {
-        0
+        let graph = self.build_graph();
+        all_paths_start(&graph, is_visitable_small_caves_once_except_one_small_cave_twice) as isize
     }
 }
 
-fn all_paths_start(graph: &UnGraphMap<&str, ()>) -> usize {
-    all_paths(graph, START_ID, HashMap::new())
+fn all_paths_start(
+    graph: &UnGraphMap<&str, ()>,
+    is_visitable: fn(id: &str, &HashMap<&str, usize>) -> bool
+) -> usize {
+    all_paths(graph, START_ID, HashMap::new(), is_visitable)
 }
 
 
-fn all_paths<'a, 'b: 'a>(graph: &UnGraphMap<&'b str, ()>, node: &'a str, mut visits: HashMap<&'a str, usize>) -> usize {
-    *visits.entry(node).or_insert(0) += 1;
+fn all_paths<'a, 'b: 'a>(
+    graph: &UnGraphMap<&'b str, ()>,
+    node: &'a str,
+    mut visits: HashMap<&'a str, usize>,
+    is_visitable: fn(id: &str, &HashMap<&str, usize>) -> bool
+) -> usize {
+    if node != START_ID {
+        *visits.entry(node).or_insert(0) += 1;
+    }
     graph.neighbors(node).fold(0usize, |hits, next_node| {
         hits + if next_node == END_ID {
             1
-        } else if is_visitable(next_node, *visits.get(&next_node).unwrap_or(&0)) {
-            all_paths(&graph, next_node, visits.clone())
+        } else if is_visitable(next_node, &visits) {
+            all_paths(&graph, next_node, visits.clone(), is_visitable)
         } else {
             0
         }
     })
 }
 
-fn is_visitable(id: &str, visits: usize) -> bool {
+fn is_visitable_small_caves_once(id: &str, visits: &HashMap<&str, usize>) -> bool {
     if id == START_ID || id == END_ID {
         false
     } else if id.chars().all(|c| c >= 'A' && c <= 'Z') {
         true
-    } else if id.chars().all(|c| c >= 'a' && c <= 'z') && visits < 1 {
+    } else if id.chars().all(|c| c >= 'a' && c <= 'z')
+            && *visits.get(id).unwrap_or(&0) < 1 {
         true
     } else {
         false
     }
+}
+
+fn is_visitable_small_caves_once_except_one_small_cave_twice(id: &str, visits: &HashMap<&str, usize>) -> bool {
+    if id == START_ID || id == END_ID {
+        false
+    } else if is_big(id) {
+        true
+    } else if is_small(id) {
+        let node_visits = *visits.get(id).unwrap_or(&0);
+        if node_visits < 1 {
+            true
+        } else if node_visits == 1
+                && visits.iter()
+                    .filter(|(check_id, check_val)| is_small(check_id) && *id != ***check_id)
+                    .map(|(_, val)| val)
+                    .all(|v| *v < 2) {
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    }
+}
+
+fn is_small(id: &str) -> bool {
+    let first_char = id.chars().next().unwrap();
+    first_char >= 'a' && first_char <= 'z'
+}
+
+fn is_big(id: &str) -> bool {
+    let first_char = id.chars().next().unwrap();
+    first_char >= 'A' && first_char <= 'Z'
 }
