@@ -24,7 +24,6 @@ impl Day12 {
             .collect()
     }
 }
-// eprintln!("{:?}", Dot::with_config(&graph, &[Config::EdgeNoLabel]));
 
 impl Day for Day12 {
     fn part1(&mut self) -> isize {
@@ -52,9 +51,7 @@ fn all_paths<'a, 'b: 'a>(
     mut visits: HashMap<&'a str, usize>,
     is_visitable: fn(id: &str, &HashMap<&str, usize>) -> bool
 ) -> usize {
-    if node != START_ID {
-        *visits.entry(node).or_insert(0) += 1;
-    }
+    *visits.entry(node).or_insert(0) += 1;
     graph.neighbors(node).fold(0usize, |hits, next_node| {
         hits + if next_node == END_ID {
             1
@@ -69,10 +66,9 @@ fn all_paths<'a, 'b: 'a>(
 fn is_visitable_small_caves_once(id: &str, visits: &HashMap<&str, usize>) -> bool {
     if id == START_ID || id == END_ID {
         false
-    } else if id.chars().all(|c| c >= 'A' && c <= 'Z') {
+    } else if is_big_cave(id) {
         true
-    } else if id.chars().all(|c| c >= 'a' && c <= 'z')
-            && *visits.get(id).unwrap_or(&0) < 1 {
+    } else if is_small_cave(id) && *visits.get(id).unwrap_or(&0) < 1 {
         true
     } else {
         false
@@ -82,17 +78,16 @@ fn is_visitable_small_caves_once(id: &str, visits: &HashMap<&str, usize>) -> boo
 fn is_visitable_small_caves_once_except_one_small_cave_twice(id: &str, visits: &HashMap<&str, usize>) -> bool {
     if id == START_ID || id == END_ID {
         false
-    } else if is_big(id) {
+    } else if is_big_cave(id) {
         true
-    } else if is_small(id) {
+    } else if is_small_cave(id) {
         let node_visits = *visits.get(id).unwrap_or(&0);
         if node_visits < 1 {
             true
-        } else if node_visits == 1
-                && visits.iter()
-                    .filter(|(check_id, check_val)| is_small(check_id) && *id != ***check_id)
-                    .map(|(_, val)| val)
-                    .all(|v| *v < 2) {
+        } else if node_visits == 1 && visits.iter()
+                .filter(|(check_id, _)| is_small_cave(check_id) && *id != ***check_id)
+                .map(|(_, val)| val)
+                .all(|v| *v < 2) {
             true
         } else {
             false
@@ -102,12 +97,12 @@ fn is_visitable_small_caves_once_except_one_small_cave_twice(id: &str, visits: &
     }
 }
 
-fn is_small(id: &str) -> bool {
+fn is_small_cave(id: &str) -> bool {
     let first_char = id.chars().next().unwrap();
     first_char >= 'a' && first_char <= 'z'
 }
 
-fn is_big(id: &str) -> bool {
+fn is_big_cave(id: &str) -> bool {
     let first_char = id.chars().next().unwrap();
     first_char >= 'A' && first_char <= 'Z'
 }
