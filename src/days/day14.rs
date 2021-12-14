@@ -28,19 +28,15 @@ impl Day14 {
 
 impl Day for Day14 {
     fn part1(&mut self) -> isize {
-        let mut base = self.base.clone();
-        for _ in 0..10 {
-            base = base.mutate(&self.insertions);
-        }
-        base.min_max_count_diff() as isize
+        (0..10).into_iter()
+            .fold(self.base.clone(), |hist, _| hist.mutate(&self.insertions))
+            .min_max_count_diff() as isize
     }
 
     fn part2(&mut self) -> isize {
-        let mut base = self.base.clone();
-        for _ in 0..40 {
-            base = base.mutate(&self.insertions);
-        }
-        base.min_max_count_diff() as isize
+        (0..40).into_iter()
+            .fold(self.base.clone(), |hist, _| hist.mutate(&self.insertions))
+            .min_max_count_diff() as isize
     }
 }
 
