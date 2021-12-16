@@ -3,7 +3,8 @@ use bitvec::prelude::*;
 use bitvec::ptr::Const;
 use tap::conv::Conv;
 
-type BitOwner = BitVec<Msb0, u8>;
+type BitWord = u8;
+type BitOwner = BitVec<Msb0, BitWord>;
 
 pub struct Day16 {
     bits: BitOwner
@@ -66,7 +67,7 @@ struct PacketHeader {
 }
 
 impl PacketHeader {
-    fn from_iter(bits: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> PacketHeader {
+    fn from_iter(bits: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> PacketHeader {
         let version = collect_num(&mut bits.take(3));
         let type_num = collect_num(&mut bits.take(3));
 
@@ -85,7 +86,7 @@ struct Packet {
 }
 
 impl Packet {
-    fn from_iter(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> Packet {
+    fn from_iter(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> Packet {
         let header = PacketHeader::from_iter(iter);
         let mut literal = None;
         let mut children: Vec<Packet> = Vec::new();
@@ -153,11 +154,11 @@ impl Packet {
     }
 }
 
-fn collect_num(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> isize {
+fn collect_num(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> isize {
     iter.fold(0isize, |num, bit| (num << 1) | (*bit as isize))
 }
 
-fn take_literal(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> isize {
+fn take_literal(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> isize {
     let mut lit_bits = BitOwner::new();
     loop {
         let cont: bool = *iter.next().unwrap();
