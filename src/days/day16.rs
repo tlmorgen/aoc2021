@@ -1,12 +1,9 @@
 use super::super::day::Day;
 use bitvec::prelude::*;
-use bitvec::ptr::{Const, Mutability};
-use bitvec::slice::Iter;
-use itertools::Itertools;
+use bitvec::ptr::Const;
 use tap::conv::Conv;
 
 type BitOwner = BitVec<Msb0, u8>;
-type Bits = BitSlice<Msb0, u8>;
 
 pub struct Day16 {
     bits: BitOwner
@@ -46,9 +43,9 @@ enum PacketType {
     Eq
 }
 
-impl PacketType {
-    fn from_num(num: isize) -> PacketType {
-        match num {
+impl From<isize> for PacketType {
+    fn from(type_num: isize) -> Self {
+        match type_num {
             0 => PacketType::Sum,
             1 => PacketType::Product,
             2 => PacketType::Min,
@@ -57,7 +54,7 @@ impl PacketType {
             5 => PacketType::Gt,
             6 => PacketType::Lt,
             7 => PacketType::Eq,
-            _ => panic!("Not a operation: {}", num)
+            _ => panic!("Not a packet type: {}", type_num)
         }
     }
 }
@@ -70,12 +67,12 @@ struct PacketHeader {
 
 impl PacketHeader {
     fn from_iter(bits: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> PacketHeader {
-        let version = to_num(&mut bits.take(3));
-        let type_num = to_num(&mut bits.take(3));
+        let version = collect_num(&mut bits.take(3));
+        let type_num = collect_num(&mut bits.take(3));
 
         PacketHeader {
             version,
-            packet_type: PacketType::from_num(type_num)
+            packet_type: type_num.conv()
         }
     }
 }
@@ -94,18 +91,18 @@ impl Packet {
         let mut children: Vec<Packet> = Vec::new();
         match header.packet_type {
             PacketType::Literal => {
-                literal = Some(to_literal(iter));
+                literal = Some(take_literal(iter));
             }
             _ => {
                 if *iter.next().unwrap() {
                     // 11 bits describing number of packets
-                    let num_packets = to_num(&mut iter.take(11));
+                    let num_packets = collect_num(&mut iter.take(11));
                     for _ in 0..num_packets {
                         children.push(Packet::from_iter(iter))
                     }
                 } else {
                     // 15 bits describing size of packets
-                    let packets_size = to_num(&mut iter.take(15));
+                    let packets_size = collect_num(&mut iter.take(15));
                     let mut next_iter = iter.take(packets_size as usize).peekable();
                     while next_iter.peek().is_some() {
                         children.push(Packet::from_iter(&mut next_iter));
@@ -156,19 +153,18 @@ impl Packet {
     }
 }
 
-fn to_num(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> isize {
+fn collect_num(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> isize {
     iter.fold(0isize, |num, bit| (num << 1) | (*bit as isize))
 }
 
-fn to_literal(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> isize {
+fn take_literal(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, u8>>) -> isize {
     let mut lit_bits = BitOwner::new();
     loop {
         let cont: bool = *iter.next().unwrap();
-        let mut num_bits: BitOwner = iter.take(4).collect();
-        lit_bits.append(&mut num_bits);
+        lit_bits.extend(iter.take(4));
         if !cont {break}
     }
-    to_num(&mut lit_bits.iter())
+    collect_num(&mut lit_bits.iter())
 }
 
 fn add_versions(packet: &Packet) -> isize {
