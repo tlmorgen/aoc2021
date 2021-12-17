@@ -1,4 +1,5 @@
 use std::cmp;
+use std::collections::{HashMap, HashSet};
 use super::super::day::Day;
 
 #[derive(Debug)]
@@ -60,7 +61,6 @@ impl Day17 {
 
 impl Day for Day17 {
     fn part1(&mut self) -> isize {
-        eprintln!("{:#?}", self);
         let mut y_epoch = 0isize;
         let xv_min = 1isize; // really slow
         let xv_max = self.x_max; // immediate overshoot
@@ -80,6 +80,21 @@ impl Day for Day17 {
     }
 
     fn part2(&mut self) -> isize {
-        0
+        let mut success: HashSet<(isize, isize)> = HashSet::new();
+        let xv_min = 1isize; // really slow
+        let xv_max = self.x_max; // immediate overshoot
+        let yv_min = self.y_min; // immediate overshoot
+        let yv_max = 1000; // math
+        for xv in xv_min..=xv_max {
+            for yv in yv_min..=yv_max {
+                match self.launch(xv, yv) {
+                    None => {}
+                    Some(_) => {
+                        success.insert((xv, yv));
+                    }
+                }
+            }
+        }
+        success.len() as isize
     }
 }
