@@ -1,3 +1,4 @@
+use bitvec::field::BitField;
 use super::super::day::Day;
 use bitvec::prelude::*;
 use bitvec::ptr::Const;
@@ -5,6 +6,7 @@ use tap::conv::Conv;
 
 type BitWord = u8;
 type BitOwner = BitVec<Msb0, BitWord>;
+type Bits = BitSlice<Msb0, BitWord>;
 
 pub struct Day16 {
     bits: BitOwner
@@ -20,15 +22,38 @@ impl Day16 {
 
 impl Day for Day16 {
     fn part1(&mut self) -> isize {
-        let mut iter = self.bits.iter();
-        let packet = Packet::from_iter(&mut iter);
-        add_versions(&packet) as isize
+        let mut bits = BitSliceScanner::from_slice(self.bits.as_bitslice());
+        let packet = Packet::from_bits(&mut bits);
+        packet.add_versions()
     }
 
     fn part2(&mut self) -> isize {
-        let mut iter = self.bits.iter();
-        let packet = Packet::from_iter(&mut iter);
+        let mut bits = BitSliceScanner::from_slice(self.bits.as_bitslice());
+        let packet = Packet::from_bits(&mut bits);
         packet.execute()
+    }
+}
+
+struct BitSliceScanner<'a> {
+    bits: &'a Bits,
+    curr_pos: usize
+}
+
+impl<'a> BitSliceScanner<'a> {
+    fn from_slice(bits: &Bits) -> BitSliceScanner {
+        BitSliceScanner {
+            bits,
+            curr_pos: 0
+        }
+    }
+    fn take_slice(&mut self, len: usize) -> &Bits {
+        let start = self.curr_pos;
+        let end = start + len;
+        self.curr_pos = end;
+        &self.bits[start..end]
+    }
+    fn empty(&self) -> bool {
+        self.curr_pos == self.bits.len()
     }
 }
 
@@ -44,8 +69,8 @@ enum PacketType {
     Eq
 }
 
-impl From<isize> for PacketType {
-    fn from(type_num: isize) -> Self {
+impl From<usize> for PacketType {
+    fn from(type_num: usize) -> Self {
         match type_num {
             0 => PacketType::Sum,
             1 => PacketType::Product,
@@ -62,18 +87,15 @@ impl From<isize> for PacketType {
 
 #[derive(Debug)]
 struct PacketHeader {
-    version: isize,
+    version: usize,
     packet_type: PacketType
 }
 
 impl PacketHeader {
-    fn from_iter(bits: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> PacketHeader {
-        let version = collect_num(&mut bits.take(3));
-        let type_num = collect_num(&mut bits.take(3));
-
+    fn from_bits(bits: &mut BitSliceScanner) -> PacketHeader {
         PacketHeader {
-            version,
-            packet_type: type_num.conv()
+            version: bits.take_slice(3).load_be(),
+            packet_type: bits.take_slice(3).load_be::<usize>().conv()
         }
     }
 }
@@ -86,27 +108,25 @@ struct Packet {
 }
 
 impl Packet {
-    fn from_iter(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> Packet {
-        let header = PacketHeader::from_iter(iter);
+    fn from_bits(bits: &mut BitSliceScanner) -> Packet {
+        let header = PacketHeader::from_bits(bits);
         let mut literal = None;
         let mut children: Vec<Packet> = Vec::new();
         match header.packet_type {
             PacketType::Literal => {
-                literal = Some(take_literal(iter));
+                literal = Some(take_literal(bits));
             }
             _ => {
-                if *iter.next().unwrap() {
-                    // 11 bits describing number of packets
-                    let num_packets = collect_num(&mut iter.take(11));
+                if *bits.take_slice(1).first().unwrap() {
+                    let num_packets: usize = bits.take_slice(11).load_be();
                     for _ in 0..num_packets {
-                        children.push(Packet::from_iter(iter))
+                        children.push(Packet::from_bits(bits))
                     }
                 } else {
-                    // 15 bits describing size of packets
-                    let packets_size = collect_num(&mut iter.take(15));
-                    let mut next_iter = iter.take(packets_size as usize).peekable();
-                    while next_iter.peek().is_some() {
-                        children.push(Packet::from_iter(&mut next_iter));
+                    let packets_size: usize = bits.take_slice(15).load_be();
+                    let mut next_bits = BitSliceScanner::from_slice(bits.take_slice(packets_size));
+                    while !next_bits.empty() {
+                        children.push(Packet::from_bits(&mut next_bits));
                     }
                 }
             }
@@ -119,9 +139,16 @@ impl Packet {
         }
     }
 
+    fn add_versions(&self) -> isize {
+        self.children.iter().fold(self.header.version as isize,
+          |sum, packet| sum + packet.add_versions())
+    }
+
     fn execute(&self) -> isize {
         match self.header.packet_type {
-            PacketType::Literal => {self.literal.unwrap()}
+            PacketType::Literal => {
+                self.literal.unwrap()
+            }
             PacketType::Sum => {
                 self.children.iter().fold(0isize, |sum, child| {
                     sum + child.execute()
@@ -139,14 +166,17 @@ impl Packet {
                 self.children.iter().map(Packet::execute).max().unwrap()
             }
             PacketType::Gt => {
+                assert_eq!(self.children.len(), 2);
                 let values: Vec<isize> = self.children.iter().map(Packet::execute).collect();
                 (values[0] > values[1]) as isize
             }
             PacketType::Lt => {
+                assert_eq!(self.children.len(), 2);
                 let values: Vec<isize> = self.children.iter().map(Packet::execute).collect();
                 (values[0] < values[1]) as isize
             }
             PacketType::Eq => {
+                assert_eq!(self.children.len(), 2);
                 let values: Vec<isize> = self.children.iter().map(Packet::execute).collect();
                 (values[0] == values[1]) as isize
             }
@@ -154,22 +184,14 @@ impl Packet {
     }
 }
 
-fn collect_num(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> isize {
-    iter.fold(0isize, |num, bit| (num << 1) | (*bit as isize))
-}
-
-fn take_literal(iter: &mut dyn Iterator<Item=BitRef<Const, Msb0, BitWord>>) -> isize {
+fn take_literal(bits: &mut BitSliceScanner) -> isize {
     let mut lit_bits = BitOwner::new();
     loop {
-        let cont: bool = *iter.next().unwrap();
-        lit_bits.extend(iter.take(4));
+        let chunk = bits.take_slice(5);
+        let cont = *chunk.first().unwrap();
+        lit_bits.extend_from_bitslice(&chunk[1..]);
         if !cont {break}
     }
-    collect_num(&mut lit_bits.iter())
-}
-
-fn add_versions(packet: &Packet) -> isize {
-    packet.children.iter()
-        .fold(packet.header.version, |sum, packet| sum + add_versions(&packet))
+    lit_bits.load_be::<usize>() as isize
 }
 
