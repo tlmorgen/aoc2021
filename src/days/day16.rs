@@ -1,7 +1,6 @@
 use bitvec::field::BitField;
 use super::super::day::Day;
 use bitvec::prelude::*;
-use bitvec::ptr::Const;
 use tap::conv::Conv;
 
 type BitWord = u8;
