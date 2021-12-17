@@ -51,8 +51,8 @@ impl<'a> BitSliceScanner<'a> {
         self.curr_pos = end;
         &self.bits[start..end]
     }
-    fn empty(&self) -> bool {
-        self.curr_pos == self.bits.len()
+    fn has_more(&self) -> bool {
+        self.curr_pos < self.bits.len()
     }
 }
 
@@ -124,7 +124,7 @@ impl Packet {
                 } else {
                     let packets_size: usize = bits.take_slice(15).load_be();
                     let mut next_bits = BitSliceScanner::from_slice(bits.take_slice(packets_size));
-                    while !next_bits.empty() {
+                    while next_bits.has_more() {
                         children.push(Packet::from_bits(&mut next_bits));
                     }
                 }
