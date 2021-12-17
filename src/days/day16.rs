@@ -23,7 +23,7 @@ impl Day for Day16 {
     fn part1(&mut self) -> isize {
         let mut bits = BitSliceScanner::from_slice(self.bits.as_bitslice());
         let packet = Packet::from_bits(&mut bits);
-        packet.add_versions()
+        packet.add_versions() as isize
     }
 
     fn part2(&mut self) -> isize {
@@ -138,8 +138,8 @@ impl Packet {
         }
     }
 
-    fn add_versions(&self) -> isize {
-        self.children.iter().fold(self.header.version as isize,
+    fn add_versions(&self) -> usize {
+        self.children.iter().fold(self.header.version as usize,
           |sum, packet| sum + packet.add_versions())
     }
 
