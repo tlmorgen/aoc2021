@@ -1,7 +1,5 @@
-use bitvec::field::BitField;
 use super::super::day::Day;
 use bitvec::prelude::*;
-use tap::conv::Conv;
 
 type BitWord = u8;
 type BitOwner = BitVec<Msb0, BitWord>;
@@ -94,7 +92,7 @@ impl PacketHeader {
     fn from_bits(bits: &mut BitSliceScanner) -> PacketHeader {
         PacketHeader {
             version: bits.take_slice(3).load_be(),
-            packet_type: bits.take_slice(3).load_be::<usize>().conv()
+            packet_type: bits.take_slice(3).load_be::<usize>().into()
         }
     }
 }
