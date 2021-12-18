@@ -48,7 +48,13 @@ struct SnailFishNumber {
     literal: Option<isize>
 }
 
+enum Side {
+    Left,
+    Right
+}
+
 impl SnailFishNumber {
+
     fn from_chars(iter: &mut Chars) -> SnailFishNumber {
         match iter.next() {
             None => {
@@ -69,7 +75,7 @@ impl SnailFishNumber {
         let left = SnailFishNumber::from_chars(iter);
         match iter.next() {
             None => {
-                panic!("EOF mid parse");
+                panic!("EOL mid parse");
             }
             Some(c) => {
                 if c == ',' {
@@ -83,7 +89,7 @@ impl SnailFishNumber {
 
         match iter.next() {
             None => {
-                panic!("EOF mid parse");
+                panic!("EOL mid parse");
             }
             Some(c) => {
                 if c == ']' {
@@ -137,15 +143,7 @@ impl SnailFishNumber {
         if !self.is_lit() {
             panic!("cannot incr a non-lit");
         }
-        self.literal = Some(self.literal.unwrap() + _rhs);
-    }
-
-    fn left_is_lit(&self) -> bool {
-        self.left.is_some() && self.left.as_ref().unwrap().is_lit()
-    }
-
-    fn right_is_lit(&self) -> bool {
-        self.right.is_some() && self.right.as_ref().unwrap().is_lit()
+        self.literal = Some(self.literal.take().unwrap() + _rhs);
     }
 
     fn is_lit(&self) -> bool {
@@ -153,7 +151,8 @@ impl SnailFishNumber {
     }
 
     fn is_lit_pair(&self) -> bool {
-        self.left_is_lit() && self.right_is_lit()
+        self.left.is_some() && self.left.as_ref().unwrap().is_lit()
+                && self.right.is_some() && self.right.as_ref().unwrap().is_lit()
     }
 
     fn reduce(&mut self) {
@@ -194,13 +193,13 @@ impl SnailFishNumber {
 
     fn explode(&mut self, depth: usize) -> Option<SnailFishNumber> {
         if depth > 4 && self.is_lit_pair() {
-            let explode_bubble = SnailFishNumber {
+            let explode = SnailFishNumber {
                 left: self.left.take(),
                 right: self.right.take(),
                 literal: None
             };
             self.literal = Some(0);
-            Some(explode_bubble)
+            Some(explode)
         } else if self.is_lit() {
             None
         } else {
@@ -267,11 +266,6 @@ impl SnailFishNumber {
                 + 2 * self.right.as_ref().unwrap().magnitude()
         }
     }
-}
-
-enum Side {
-    Left,
-    Right
 }
 
 impl fmt::Debug for SnailFishNumber {
