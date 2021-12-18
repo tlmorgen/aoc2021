@@ -28,7 +28,7 @@ impl Day for Day18 {
             sum.reduce();
             eprintln!("reduced {:?}", sum);
         }
-        0
+        sum.magnitude()
     }
 
     fn part2(&mut self) -> isize {
@@ -244,6 +244,15 @@ impl SnailFishNumber {
             }
         } else {
             Some(explode) // nothing to do
+        }
+    }
+
+    fn magnitude(&self) -> isize {
+        if self.is_lit() {
+            self.literal.unwrap()
+        } else {
+            3 * self.left.as_ref().unwrap().magnitude()
+                + 2 * self.right.as_ref().unwrap().magnitude()
         }
     }
 }
