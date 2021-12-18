@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Formatter, Write};
+use std::fmt::Formatter;
 use std::str::Chars;
 use super::super::day::Day;
 
@@ -19,14 +19,12 @@ impl Day18 {
 
 impl Day for Day18 {
     fn part1(&mut self) -> isize {
-        // eprintln!("{:#?}", self.numbers);
         self.numbers.reverse();
         let mut sum = self.numbers.pop().unwrap();
+        sum.reduce();
         while self.numbers.len() > 0 {
             sum = sum.add(self.numbers.pop().unwrap());
-            eprintln!("sum {:?}", sum);
             sum.reduce();
-            eprintln!("reduced {:?}", sum);
         }
         sum.magnitude()
     }
@@ -144,55 +142,61 @@ impl SnailFishNumber {
 
     fn reduce(&mut self) {
         loop {
-            let (mutation,  bubble) = self.reduce0(1);
-            if !mutation && !bubble.is_some() {break}
+            loop {
+                let explode = self.explode(1);
+                if !explode.is_some() {break}
+            }
+            let splitted = self.split();
+            let mut any_explodes = false;
+            loop {
+                let explode = self.explode(1);
+                any_explodes |= explode.is_some();
+                if !explode.is_some() {break}
+            }
+            if !splitted && !any_explodes {break}
         }
     }
 
-    fn reduce0(&mut self, depth: usize) -> (bool, Option<SnailFishNumber>) {
-        eprintln!("{} - {:?}", depth, self);
+    fn split(&mut self) -> bool {
+        if self.is_lit() {
+            if self.literal.unwrap() >= 10 {
+                let lit = self.literal.take().unwrap();
+                self.left = Some(Box::new(SnailFishNumber::from_num(lit / 2)));
+                self.right = Some(Box::new(SnailFishNumber::from_num((lit + 1) / 2)));
+                true
+            } else {
+                false
+            }
+        } else {
+            if !self.left.as_mut().unwrap().split() {
+                self.right.as_mut().unwrap().split()
+            } else {
+                true
+            }
+        }
+    }
+
+    fn explode(&mut self, depth: usize) -> Option<SnailFishNumber> {
         if depth > 4 && self.is_lit_pair() {
-            eprintln!("explode ({}): {:?}", depth,  self);
             let explode_bubble = SnailFishNumber {
                 left: self.left.take(),
                 right: self.right.take(),
                 literal: None
             };
             self.literal = Some(0);
-            (false, Some(explode_bubble))
+            Some(explode_bubble)
         } else if self.is_lit() {
-            if self.literal.unwrap() >= 10 { // split
-                eprintln!("split ({}): {:?}", depth,  self);
-                let lit = self.literal.take().unwrap();
-                self.left = Some(Box::new(SnailFishNumber::from_num(lit / 2)));
-                self.right = Some(Box::new(SnailFishNumber::from_num((lit + 1) / 2)));
-                eprintln!("after split ({}): {:?}", depth,  self);
-                (true, None)
-            } else {
-                (false, None)
-            }
+            None
         } else {
-            eprintln!("descend left ({}): {:?}", depth,  self);
-            let (split, bubble) = self.left.as_mut().unwrap().reduce0(depth + 1);
-            if split {
-                (split, bubble)
-            } else {
-                match bubble {
-                    Some(explode) => {
-                        (split, self.try_merge_up(explode, Side::Left))
-                    }
-                    None => {
-                        eprintln!("descend right ({}): {:?}", depth, self);
-                        let (split, bubble) = self.right.as_mut().unwrap().reduce0(depth + 1);
-                        if split {
-                            (split, bubble)
-                        } else {
-                            match bubble {
-                                None => (split, None),
-                                Some(explode) => {
-                                    (split, self.try_merge_up(explode, Side::Right))
-                                }
-                            }
+            match self.left.as_mut().unwrap().explode(depth + 1) {
+                Some(explode) => {
+                    self.try_merge_up(explode, Side::Left)
+                }
+                None => {
+                    match self.right.as_mut().unwrap().explode(depth + 1) {
+                        None => None,
+                        Some(explode) => {
+                            self.try_merge_up(explode, Side::Right)
                         }
                     }
                 }
@@ -200,7 +204,7 @@ impl SnailFishNumber {
         }
     }
 
-    fn try_merge_up(&mut self, mut explode: SnailFishNumber, source: Side) -> Option<SnailFishNumber> {
+    fn try_merge_up(&mut self, explode: SnailFishNumber, source: Side) -> Option<SnailFishNumber> {
         match source {
             Side::Left => {
                 self.right.as_mut().unwrap().try_merge_down_rightward(explode)
@@ -213,15 +217,11 @@ impl SnailFishNumber {
 
     fn try_merge_down_leftward(&mut self, mut explode: SnailFishNumber) -> Option<SnailFishNumber> {
         if explode.left.is_some() {
-            eprintln!("merging down leftward {:?} vs {:?}", self, explode);
             if self.is_lit() {
                 self.incr_lit(explode.left.take().unwrap().literal.unwrap());
-                eprintln!("after incr {:?}", self);
                 Some(explode)
             } else {
-                eprintln!("merge descending right");
                 let result = self.right.as_mut().unwrap().try_merge_down_leftward(explode);
-                eprintln!("merge descending left");
                 self.left.as_mut().unwrap().try_merge_down_leftward(result.unwrap())
             }
         } else {
@@ -231,15 +231,11 @@ impl SnailFishNumber {
 
     fn try_merge_down_rightward(&mut self, mut explode: SnailFishNumber) -> Option<SnailFishNumber> {
         if explode.right.is_some() {
-            eprintln!("merging down rightward {:?} vs {:?}", self, explode);
             if self.is_lit() {
                 self.incr_lit(explode.right.take().unwrap().literal.unwrap());
-                eprintln!("after incr {:?}", self);
                 Some(explode)
             } else {
-                eprintln!("merge descending left");
                 let result = self.left.as_mut().unwrap().try_merge_down_rightward(explode);
-                eprintln!("merge descending right");
                 self.right.as_mut().unwrap().try_merge_down_rightward(result.unwrap())
             }
         } else {
