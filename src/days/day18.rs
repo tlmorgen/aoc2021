@@ -1,7 +1,8 @@
-use std::fmt;
-use std::fmt::Formatter;
-use std::str::Chars;
 use super::super::day::Day;
+use std::str::Chars;
+use itertools::Itertools;
+use std::fmt::Formatter;
+use std::{cmp, fmt};
 
 pub struct Day18 {
     numbers: Vec<SnailFishNumber>
@@ -19,21 +20,28 @@ impl Day18 {
 
 impl Day for Day18 {
     fn part1(&mut self) -> isize {
-        self.numbers.reverse();
-        let mut sum = self.numbers.pop().unwrap();
+        let mut numbers = self.numbers.clone();
+        numbers.reverse();
+        let mut sum = numbers.pop().unwrap();
         sum.reduce();
-        while self.numbers.len() > 0 {
-            sum = sum.add(self.numbers.pop().unwrap());
+        while numbers.len() > 0 {
+            sum = sum.add(numbers.pop().unwrap());
             sum.reduce();
         }
         sum.magnitude()
     }
 
     fn part2(&mut self) -> isize {
-        0
+        self.numbers.iter().permutations(2).fold(0isize, |max, pair| {
+            let mut sum = pair[0].add_refs(pair[1]);
+            sum.reduce();
+            let mag = sum.magnitude();
+            cmp::max(max, mag)
+        })
     }
 }
 
+#[derive(Clone)]
 struct SnailFishNumber {
     left: Option<Box<SnailFishNumber>>,
     right: Option<Box<SnailFishNumber>>,
@@ -106,6 +114,14 @@ impl SnailFishNumber {
             left: None,
             right: None,
             literal: Some(num)
+        }
+    }
+
+    fn add_refs(&self, _rhs: &SnailFishNumber) -> SnailFishNumber {
+        SnailFishNumber {
+            left: Some(Box::new(self.clone())),
+            right: Some(Box::new(_rhs.clone())),
+            literal: None
         }
     }
 
