@@ -9,6 +9,7 @@ mod days;
 use clap::{App, Arg};
 use std::fs;
 use std::process::ExitCode;
+use std::time::Instant;
 use day::DayMaker;
 use chrono::{Utc, TimeZone, Datelike};
 use chrono_tz::US::Eastern;
@@ -72,6 +73,7 @@ fn main() -> ExitCode {
         }
     };
 
+    let start = Instant::now();
     match DAY_MAKERS[day_idx](&content) {
         Ok(mut day) => {
             println!("part 1: {}", day.part1());
@@ -82,6 +84,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     }
+    println!("runtime: {:?}", start.elapsed());
 
     return ExitCode::SUCCESS;
 }
