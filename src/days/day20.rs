@@ -24,11 +24,15 @@ impl Day20 {
 
 impl Day for Day20 {
     fn part1(&mut self) -> isize {
-        self.image.enhance().enhance().pixel_count() as isize
+        self.image.enhance().enhance().pixel_count()
     }
 
     fn part2(&mut self) -> isize {
-        0
+        let mut image = self.image.clone();
+        for _ in 0..50 {
+            image = image.enhance();
+        }
+        image.pixel_count()
     }
 }
 
@@ -41,11 +45,10 @@ struct Image {
 
 impl Image {
     fn from(cells: Array2D<char>, enhancement_data: Vec<char>) -> Self {
-        let infinity = enhancement_data[0];
         Image {
             cells,
             enhancement_data,
-            infinity
+            infinity: '.'
         }
     }
 
@@ -55,7 +58,7 @@ impl Image {
             .join("\n")
     }
 
-    fn enhance(&self) -> Image {
+    fn enhance(&self) -> Self {
         let expand_radius = 1usize;
         let new_infinity = if self.infinity == '.' {
             self.enhancement_data[0]
@@ -63,18 +66,16 @@ impl Image {
             self.enhancement_data[self.enhancement_data.len() - 1]
         };
         let mut new_cells = Array2D::filled_with(new_infinity,
-                                                 self.cells.num_rows() + 2 * expand_radius,
-                                                 self.cells.num_columns() + 2 * expand_radius);
+                                                 self.cells.num_rows() + (2 * expand_radius),
+                                                 self.cells.num_columns() + (2 * expand_radius));
         for i in 0..new_cells.num_rows() {
             for j in 0..new_cells.num_columns() {
-                let old_i = (i as isize) - expand_radius as isize;
-                let old_j = (j as isize) - expand_radius as isize;
+                let old_i = (i as isize) - (expand_radius as isize);
+                let old_j = (j as isize) - (expand_radius as isize);
                 let values: Vec<char> = self.build_group(&(old_i, old_j)).iter()
-                    .map(|p| self.get_cell_or_default(p, new_infinity))
+                    .map(|p| self.get_cell(p))
                     .collect();
-                if values.len() > 0 {
-                    new_cells[(i, j)] = self.get_enhancement_cell(values);
-                }
+                new_cells[(i, j)] = self.get_enhancement_cell(values, new_infinity);
             }
         }
         Image {
@@ -95,33 +96,37 @@ impl Image {
         }
     }
 
-    fn get_cell_or_default(&self, p: &Idx, default: char) -> char {
+    fn get_cell(&self, p: &Idx) -> char {
         match self.validate_idx(p) {
-            None => default,
+            None => self.infinity,
             Some(p) => self.cells[p]
         }
     }
 
-    fn get_enhancement_cell(&self, chars: Vec<char>) -> char {
-        let b_str = chars.iter().map(|c| match *c {
-            '.' => "0",
-            '#' => "1",
-            _ => panic!("invalid char {}", c)
-        }).join("");
-        let idx = usize::from_str_radix(&b_str, 2).unwrap();
-        self.enhancement_data[idx]
+    fn get_enhancement_cell(&self, chars: Vec<char>, default: char) -> char {
+        if chars.len() > 0 {
+            let b_str = chars.iter().map(|c| match *c {
+                '.' => "0",
+                '#' => "1",
+                _ => panic!("invalid char {}", c)
+            }).join("");
+            let idx = usize::from_str_radix(&b_str, 2).unwrap();
+            self.enhancement_data[idx]
+        } else {
+            default
+        }
     }
 
-    fn pixel_count(&self) -> usize {
+    fn pixel_count(&self) -> isize {
         if self.infinity == '#' {
-            usize::MAX
+            -1
         } else {
             self.cells.elements_row_major_iter()
                 .map(|c| match *c {
                     '.' => 0,
                     '#' => 1,
                     _ => panic!("invalid char {}", c)
-                }).sum()
+                }).sum::<usize>() as isize
         }
     }
 
