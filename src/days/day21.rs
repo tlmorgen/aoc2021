@@ -23,7 +23,7 @@ impl Day21 {
 impl Day for Day21 {
     fn part1(&mut self) -> isize {
         let end_score = 1000usize;
-        let mut die = DetDie::new();
+        let mut die = DetDie::new(100);
         let mut pos = self.pos.clone();
         let mut scores = vec![0usize; pos.len()];
         'outer: loop {
@@ -36,7 +36,6 @@ impl Day for Day21 {
                     scores[player] = score;
                 }
             }
-            eprintln!("scores {:?}", scores);
         }
         (scores.iter().min().unwrap() * die.rolls()) as isize
     }
@@ -47,19 +46,25 @@ impl Day for Day21 {
 }
 
 struct DetDie {
+    sides: usize,
     face: usize,
     rolls: usize
 }
 
 impl DetDie {
-    fn new() -> Self {
+    fn new(sides: usize) -> Self {
         DetDie {
-            face: 1,
+            sides,
+            face: 0,
             rolls: 0
         }
     }
     fn roll(&mut self) -> usize {
-        (self.face, self.face += 1, self.rolls += 1).0
+        (
+            self.face + 1,
+            self.face = (self.face + 1) % self.sides,
+            self.rolls += 1
+        ).0
     }
     fn roll_sum(&mut self, count: usize) -> usize {
         (0..count).fold(0usize, |sum, _| sum + self.roll())
