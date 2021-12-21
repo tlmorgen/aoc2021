@@ -52,12 +52,6 @@ impl Image {
         }
     }
 
-    fn display(&self) -> String {
-        self.cells.rows_iter()
-            .map(|mut row| row.join(""))
-            .join("\n")
-    }
-
     fn enhance(&self) -> Self {
         let expand_radius = 1usize;
         let new_infinity = if self.infinity == '.' {
