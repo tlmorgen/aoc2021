@@ -1,5 +1,6 @@
 #![feature(process_exitcode_placeholder)]
 #![feature(linked_list_cursors)]
+#![feature(map_first_last)]
 extern crate chrono;
 extern crate chrono_tz;
 
