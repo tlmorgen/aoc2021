@@ -1,6 +1,4 @@
-use std::cmp::{max, min};
 use std::collections::{BTreeSet, HashMap};
-
 use itertools::Itertools;
 use rayon::prelude::*;
 
@@ -40,7 +38,7 @@ fn min_opt(l: Option<usize>, r: Option<usize>) -> Option<usize> {
             match r {
                 None => Some(lv),
                 Some(rv) => {
-                    Some(min(lv, rv))
+                    Some(lv.min(rv))
                 }
             }
         }
